@@ -4,24 +4,69 @@ import random
 import sys
 import os
 
+# init
 pygame.init()
-
 clock = pygame.time.Clock()
 fps = 60
 
-# Screen setup
+# screen
 screen_width = 664
 screen_height = 736
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Flappy Bird')
+white = (255, 255, 255)
+sound_on = True
 
 # font
 font = pygame.font.SysFont('Bauhaus 93', 60)
 
-# colors
-white = (255, 255, 255)
+# sound
+pygame.mixer.music.set_volume(0.2)
+menu_music = 'sounds/rickroll.mp3'
+game_music = 'sounds/game_sound.mp3'
+gameover_music = pygame.mixer.Sound('sounds/gameover_sound.mp3')
+current_music = None
 
-# game vars
+def play_music(path):
+    if sound_on:  
+        pygame.mixer.music.load(path)
+        pygame.mixer.music.play(-1)
+
+def stop_music():
+    pygame.mixer.music.stop()
+
+# img
+bg = pygame.image.load('img/bg.png').convert()
+ground_img = pygame.image.load('img/ground.png').convert_alpha()
+button_img = pygame.image.load('img/newgame_btn.png').convert_alpha()
+new_game_img = pygame.image.load('img/start_btn.png').convert_alpha()
+exit_img = pygame.image.load('img/quit_btn.png').convert_alpha()
+menu_img = pygame.image.load('img/menu_btn.png').convert_alpha()
+game_over_img = pygame.image.load('img/gameover.png').convert_alpha()
+game_logo_img = pygame.image.load('img/flappy_logo.png').convert_alpha()
+shop_img = pygame.image.load('img/shop_btn.png').convert_alpha()
+sound_on_img = pygame.image.load('img/sound_on.png').convert_alpha()
+sound_off_img = pygame.image.load('img/sound_off.png').convert_alpha()
+
+# skin
+bird_skins = []
+base_bird_img = pygame.image.load('img/bird1.png').convert_alpha()
+base_size = base_bird_img.get_size()
+
+skin_index = 1
+while True:
+    skin_path = f'img/bird{skin_index}.png'
+    if not os.path.isfile(skin_path):
+        break
+    skin_img = pygame.image.load(skin_path).convert_alpha()
+    skin_img = pygame.transform.scale(skin_img, base_size)
+    bird_skins.append(skin_img)
+    skin_index += 1
+
+if len(bird_skins) == 0:
+    bird_skins.append(base_bird_img)
+
+# state var
 ground_scroll = 0
 scroll_speed = 4
 flying = False
@@ -35,60 +80,12 @@ main_menu = True
 selected_skin = 1
 shop_menu = False
 
-# img
-bg = pygame.image.load('img/bg.png').convert()
-ground_img = pygame.image.load('img/ground.png').convert_alpha()
-button_img = pygame.image.load('img/newgame_btn.png').convert_alpha()
-new_game_img = pygame.image.load('img/start_btn.png').convert_alpha()
-exit_img = pygame.image.load('img/quit_btn.png').convert_alpha()
-menu_img = pygame.image.load('img/menu_btn.png').convert_alpha()
-game_over_img = pygame.image.load('img/gameover.png').convert_alpha()
-game_logo_img = pygame.image.load('img/flappy_logo.png').convert_alpha()
-shop_img = pygame.image.load('img/shop_btn.png').convert_alpha()
-
-
-bird_skins = []
-
-base_bird_img = pygame.image.load('img/bird1.png').convert_alpha()
-base_size = base_bird_img.get_size()
-
-skin_index = 1
-
-# sound
-pygame.mixer.music.set_volume(0.5)
-
-menu_music = 'sounds/rickroll.mp3'
-game_music = 'sounds/game_sound.mp3'
-gameover_music = pygame.mixer.Sound('sounds/gameover_sound.mp3')
-
-# xu ly phat va dung nhac
-current_music = None
-def play_music(path):
-    pygame.mixer.music.load(path)
-    pygame.mixer.music.play(-1)
-def stop_music():
-    pygame.mixer.music.stop()
-
-
-while True:
-    skin_path = f'img/bird{skin_index}.png'
-    if not os.path.isfile(skin_path):
-        break
-    skin_img = pygame.image.load(skin_path).convert_alpha()
-    skin_img = pygame.transform.scale(skin_img, base_size)
-    bird_skins.append(skin_img)
-    skin_index += 1
-
-if len(bird_skins) == 0:
-    bird_skins.append(base_bird_img)
-
-# draw center text
+# func
 def draw_center_text(text, font, color, x, y):
     img = font.render(text, True, color)
     rect = img.get_rect(center=(x, y))
     screen.blit(img, rect)
 
-# reset game
 def reset_game():
     pipe_group.empty()
     global flappy
@@ -97,7 +94,7 @@ def reset_game():
     bird_group.add(flappy)
     return 0
 
-# Bird class
+# class
 class Bird(pygame.sprite.Sprite):
     def __init__(self, x, y, skin_index):
         super().__init__()
@@ -131,7 +128,6 @@ class Bird(pygame.sprite.Sprite):
         else:
             self.image = pygame.transform.rotate(self.images[self.index], -90)
 
-# pipe class
 class Pipe(pygame.sprite.Sprite):
     def __init__(self, x, y, position):
         super().__init__()
@@ -148,12 +144,12 @@ class Pipe(pygame.sprite.Sprite):
         if self.rect.right < 0:
             self.kill()
 
-# button class
-class Button():
+class Button:
     def __init__(self, x, y, image):
         self.image = image
         self.original_image = image.copy()
         self.rect = self.image.get_rect(center=(x, y))
+        self.clicked = False  # biến theo dõi click
 
     def draw(self):
         action = False
@@ -165,44 +161,58 @@ class Button():
             hover_img = self.original_image.copy()
             hover_img.blit(bright_image, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
             screen.blit(hover_img, self.rect)
-            if pygame.mouse.get_pressed()[0] == 1:
+
+            if pygame.mouse.get_pressed()[0] == 1 and not self.clicked:
                 action = True
+                self.clicked = True
+            elif pygame.mouse.get_pressed()[0] == 0:
+                self.clicked = False
         else:
             screen.blit(self.image, self.rect)
 
         return action
 
-
-# Sprite groups
+# sprite group
 bird_group = pygame.sprite.Group()
 pipe_group = pygame.sprite.Group()
-
 flappy = Bird(100, screen_height // 2, selected_skin)
 bird_group.add(flappy)
 
-# btns
+# Buttons
 restart_button = Button(screen_width // 2, screen_height // 2 + 20, button_img)
 back_to_menu_button = Button(screen_width // 2, screen_height // 2 + 160, menu_img)
 exit_button_gameover = Button(screen_width // 2, screen_height // 2 + 220, exit_img)
 new_game_button = Button(screen_width // 2, screen_height // 2 - 70, new_game_img)
 shop_button = Button(screen_width // 2, screen_height // 2 + 10, shop_img)
 exit_button_mainmenu = Button(screen_width // 2, screen_height // 2 + 90, exit_img)
-menu_button_gameover = Button(screen_width // 2, screen_height // 2 + 130, menu_img) 
+menu_button_gameover = Button(screen_width // 2, screen_height // 2 + 130, menu_img)
+sound_button = Button(screen_width - 50, 50, sound_on_img)
 
-
-# main
+# main loop
 run = True
 while run:
     clock.tick(fps)
-
     screen.blit(bg, (0, 0))
+    
+    #sound btn
+    sound_button.image = sound_on_img if sound_on else sound_off_img
+    sound_button.original_image = sound_button.image.copy()
+    if sound_button.draw():
+        sound_on = not sound_on
+        if sound_on:
+            if main_menu or shop_menu:
+                play_music(menu_music)
+            else:
+                play_music(game_music)
+        else:
+            stop_music()
 
     # main menu
     if main_menu and not shop_menu:
         if current_music != 'menu':
             play_music(menu_music)
             current_music = 'menu'
-        
+
         screen.blit(ground_img, (0, 700))
         screen.blit(game_logo_img, game_logo_img.get_rect(center=(screen_width // 2, screen_height // 2 - 200)))
 
@@ -214,64 +224,46 @@ while run:
             score = reset_game()
 
         if shop_button.draw():
-            shop_menu = True  # go to shop
+            shop_menu = True
 
         if exit_button_mainmenu.draw():
             run = False
 
-    # Shop Menu
+    # shop Menu
     elif shop_menu:
-        
         if current_music != 'menu':
             play_music(menu_music)
             current_music = 'menu'
-        
+
         screen.blit(ground_img, (0, 700))
         draw_center_text("Select a Bird Skin", font, white, screen_width // 2, 80)
 
-        '''for i, skin in enumerate(bird_skins):
+        for i, skin in enumerate(bird_skins):
             skin_scaled = pygame.transform.scale(skin, (60, 60))
             rect = skin_scaled.get_rect(center=(150 + i * 100, 200))
             screen.blit(skin_scaled, rect)
 
-            if rect.collidepoint(pygame.mouse.get_pos()) and pygame.mouse.get_pressed()[0]:
-                selected_skin = i + 1
-                flappy = Bird(100, screen_height // 2, selected_skin)
-                bird_group.empty()
-                bird_group.add(flappy)'''
-                
-        for i, skin in enumerate(bird_skins):
-            skin_scaled = pygame.transform.scale(skin, (60, 60))
-            rect = skin_scaled.get_rect(center=(150 + i * 100, 200))
-        
-            # Draw skin
-            screen.blit(skin_scaled, rect)
-        
-            # Draw border if hovered
             if rect.collidepoint(pygame.mouse.get_pos()):
-                pygame.draw.rect(screen, (255, 255, 0), rect.inflate(6, 6), 3)  # Yellow border on hover
+                pygame.draw.rect(screen, (255, 255, 0), rect.inflate(6, 6), 3)
                 if pygame.mouse.get_pressed()[0]:
                     selected_skin = i + 1
                     flappy = Bird(100, screen_height // 2, selected_skin)
                     bird_group.empty()
                     bird_group.add(flappy)
-        
-            # Draw border if selected
-            if selected_skin == i + 1:
-                pygame.draw.rect(screen, (0, 255, 0), rect.inflate(8, 8), 4)  # Green border if selected
 
+            if selected_skin == i + 1:
+                pygame.draw.rect(screen, (0, 255, 0), rect.inflate(8, 8), 4)
 
         if back_to_menu_button.draw():
             shop_menu = False
             main_menu = True
 
-    # Gameplay
+    # game
     else:
-        
         if current_music != 'game':
             play_music(game_music)
             current_music = 'game'
-        
+
         bird_group.draw(screen)
         bird_group.update()
         pipe_group.draw(screen)
@@ -290,7 +282,7 @@ while run:
 
         if pygame.sprite.groupcollide(bird_group, pipe_group, False, False) or flappy.rect.top < 0:
             if not game_over:
-                stop_music()              
+                stop_music()
                 gameover_music.play()
             game_over = True
             current_music = None
@@ -319,7 +311,7 @@ while run:
 
         if game_over:
             screen.blit(game_over_img, game_over_img.get_rect(center=(screen_width // 2, screen_height // 2 - 150)))
-            
+
             if restart_button.draw():
                 game_over = False
                 flying = False
@@ -334,7 +326,7 @@ while run:
             if exit_button_gameover.draw():
                 run = False
 
-    # Global events
+    # global events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
