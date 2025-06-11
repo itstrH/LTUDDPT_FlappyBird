@@ -15,17 +15,20 @@ screen_height = 736
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption('Flappy Bird')
 white = (255, 255, 255)
-sound_on = True
+
 
 # font
 font = pygame.font.SysFont('Bauhaus 93', 60)
 
+
+#sound state var
+sound_on = True
+current_music = None
 # sound
 pygame.mixer.music.set_volume(0.2)
 menu_music = 'sounds/rickroll.mp3'
 game_music = 'sounds/game_sound.mp3'
 gameover_music = pygame.mixer.Sound('sounds/gameover_sound.mp3')
-current_music = None
 
 def play_music(path):
     if sound_on:  
@@ -76,9 +79,9 @@ pipe_frequency = 1500
 last_pipe = pygame.time.get_ticks() - pipe_frequency
 score = 0
 pass_pipe = False
-main_menu = True
+
 selected_skin = 1
-shop_menu = False
+
 
 # func
 def draw_center_text(text, font, color, x, y):
@@ -188,6 +191,11 @@ exit_button_mainmenu = Button(screen_width // 2, screen_height // 2 + 90, exit_i
 menu_button_gameover = Button(screen_width // 2, screen_height // 2 + 130, menu_img)
 sound_button = Button(screen_width - 50, 50, sound_on_img)
 
+
+# menu state var
+main_menu = True
+shop_menu = False
+
 # main loop
 run = True
 while run:
@@ -214,7 +222,8 @@ while run:
             current_music = 'menu'
 
         screen.blit(ground_img, (0, 700))
-        screen.blit(game_logo_img, game_logo_img.get_rect(center=(screen_width // 2, screen_height // 2 - 200)))
+        screen.blit(game_logo_img, game_logo_img
+                    .get_rect(center=(screen_width // 2, screen_height // 2 - 200)))
 
         if new_game_button.draw():
             main_menu = False
