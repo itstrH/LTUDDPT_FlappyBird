@@ -149,7 +149,7 @@ class Button:
         self.image = image
         self.original_image = image.copy()
         self.rect = self.image.get_rect(center=(x, y))
-        self.clicked = False  # biến theo dõi click
+        self.clicked = False  # bien theo doi click 
 
     def draw(self):
         action = False
